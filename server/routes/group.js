@@ -72,7 +72,7 @@ router.post("/", async (req, res) => {
     return res.status(201).json({
       groupId: group._id,
       inviteCode: group.inviteCode,
-      memberId: member._id,
+      memberId: member._id.toString(),
       sessionToken: member.sessionToken
     });
   } catch (error) {
@@ -110,7 +110,7 @@ router.post("/:code/join", joinLimiter, async (req, res) => {
 
     return res.status(200).json({
       groupId: group._id,
-      memberId: member._id,
+      memberId: member._id.toString(),
       role: member.role,
       sessionToken: member.sessionToken
     });

@@ -48,6 +48,10 @@ const setupSlotHandlers = (io) => {
       try {
         const account = await Account.findOne({ _id: payload.accountId, groupId });
         if (!account) return socket.emit("error_event", { message: "Account not found." });
+        const currentSlots = await getAccountSlots(account._id, account.totalSlots);
+        if (currentSlots.some((slot) => slot.memberId === member._id.toString())) {
+          return socket.emit("error_event", { message: "You already have a slot on this account. Release it before claiming another." });
+        }
         for (let slotNumber = 1; slotNumber <= account.totalSlots; slotNumber++) {
           const key = `slot:${account._id}:${slotNumber}`;
           const result = await client.set(key, JSON.stringify({ memberId: member._id.toString(), memberName: member.name }), { NX: true, EX: 7200 });

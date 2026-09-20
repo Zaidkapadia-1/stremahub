@@ -1,11 +1,8 @@
 import React from 'react';
-import { Search, Plus, Bell } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Search, Bell } from 'lucide-react';
+
 
 export default function TopNav({ onSearch }) {
-  const { groupId } = useParams();
-  const navigate = useNavigate();
-
   return (
     <div style={{
       display: 'flex',
@@ -47,15 +44,6 @@ export default function TopNav({ onSearch }) {
 
       {/* Right Actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <button
-          onClick={() => navigate(`/group/${groupId}/add-accounts`)}
-          className="btn-primary"
-          style={{ fontSize: '0.88rem', padding: '9px 18px' }}
-        >
-          <Plus size={16} />
-          <span>Add Account</span>
-        </button>
-
         <button
           className="btn-icon"
           style={{

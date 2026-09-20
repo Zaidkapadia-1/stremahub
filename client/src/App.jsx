@@ -60,6 +60,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/create" element={<CreateGroup />} />
+            <Route path="/join" element={<JoinGroup />} />
             <Route path="/join/:code" element={<JoinGroup />} />
             <Route path="/group/:groupId" element={<Dashboard />} />
             <Route path="/group/:groupId/activity" element={<Activity />} />

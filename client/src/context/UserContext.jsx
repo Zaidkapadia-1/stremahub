@@ -21,10 +21,19 @@ export const UserProvider = ({ children }) => {
   }, [user]);
 
   const updateUser = (data) => {
-    setUser((prev) => ({ ...prev, ...data }));
+    setUser((prev) => {
+      const next = { ...(prev || {}), ...data };
+      try {
+        localStorage.setItem('streamhub_user', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
   };
 
   const logout = () => {
+    try {
+      localStorage.removeItem('streamhub_user');
+    } catch {}
     setUser(null);
   };
 

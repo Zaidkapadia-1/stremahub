@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Play, Plus } from 'lucide-react';
+import ServiceLogo from './ServiceLogo';
 
 const serviceColors = {
   Netflix: { bg: '#E50914', text: '#fff' },
@@ -49,21 +50,7 @@ export default function AccountCard({ account, slots = [] }) {
       }}>
         {/* Service Badge & Name */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '8px',
-            background: serviceStyle.bg,
-            color: serviceStyle.text,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: 800,
-            fontSize: '0.85rem',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.4)'
-          }}>
-            {account.serviceName.charAt(0)}
-          </div>
+          <ServiceLogo name={account.serviceName} size={36} />
           <div>
             <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>{account.serviceName}</h3>
             <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>

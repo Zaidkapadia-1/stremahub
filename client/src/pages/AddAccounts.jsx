@@ -4,14 +4,15 @@ import { ChevronLeft, Plus, Check, Minus } from 'lucide-react';
 import api from '../api';
 import { useUser } from '../context/UserContext';
 import StepProgress from '../components/StepProgress';
+import ServiceLogo from '../components/ServiceLogo';
 
 const defaultServices = [
-  { name: 'Netflix',          defaultSlots: 2, bg: '#E50914', emoji: '🎬' },
-  { name: 'Prime Video',      defaultSlots: 3, bg: '#00A8E1', emoji: '📦' },
-  { name: 'Disney+',          defaultSlots: 4, bg: '#113CCF', emoji: '✨' },
-  { name: 'YouTube Premium',  defaultSlots: 2, bg: '#FF0000', emoji: '▶️' },
-  { name: 'HBO Max',          defaultSlots: 2, bg: '#5822B4', emoji: '👑' },
-  { name: 'Apple TV+',        defaultSlots: 2, bg: '#333333', emoji: '🍎' },
+  { name: 'Netflix',          defaultSlots: 2 },
+  { name: 'Prime Video',      defaultSlots: 3 },
+  { name: 'Disney+',          defaultSlots: 4 },
+  { name: 'YouTube Premium',  defaultSlots: 2 },
+  { name: 'HBO Max',          defaultSlots: 2 },
+  { name: 'Apple TV+',        defaultSlots: 2 },
 ];
 
 export default function AddAccounts() {
@@ -150,14 +151,7 @@ export default function AddAccounts() {
                   </div>
                 )}
 
-                <div style={{
-                  width: '52px', height: '52px', borderRadius: '14px',
-                  background: getServiceStyle(svc),
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '1.5rem', boxShadow: `0 4px 16px ${svc.bg || '#7c3aed'}55`
-                }}>
-                  {svc.emoji}
-                </div>
+                <ServiceLogo name={svc.name} size={52} />
 
                 <span style={{ fontSize: '0.92rem', fontWeight: 700, textAlign: 'center' }}>{svc.name}</span>
 
