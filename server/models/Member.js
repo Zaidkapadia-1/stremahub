@@ -6,6 +6,11 @@ const memberSchema = new mongoose.Schema({
     ref: "Group",
     required: true
   },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    default: null
+  },
   name: {
     type: String,
     required: true,

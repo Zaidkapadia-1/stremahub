@@ -3,16 +3,16 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Play, ArrowLeft, ArrowRight, Sparkles, KeyRound, User } from 'lucide-react';
 import api from '../api';
 import { useUser } from '../context/UserContext';
+import StreamHubLogo from '../components/StreamHubLogo';
 
 export default function JoinGroup() {
   const { code: urlCode } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { updateUser } = useUser();
+  const { account, updateUser } = useUser();
 
   const initialCode = (urlCode || searchParams.get('code') || '').trim().toUpperCase();
   const [inviteCode, setInviteCode] = useState(initialCode);
-  const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -43,17 +43,12 @@ export default function JoinGroup() {
       return;
     }
 
-    if (!name.trim()) {
-      setError('Please enter your name.');
-      return;
-    }
-
     setLoading(true);
     setError('');
 
     try {
       const res = await api.post(`/group/${cleanCode}/join`, {
-        name: name.trim()
+        name: account?.name || 'Member'
       });
 
       const { groupId, memberId, role, sessionToken } = res.data;
@@ -63,7 +58,7 @@ export default function JoinGroup() {
         memberId,
         sessionToken,
         role,
-        name: name.trim(),
+        name: account?.name || 'Member',
         inviteCode: cleanCode
       });
 
@@ -129,28 +124,9 @@ export default function JoinGroup() {
 
         <div
           onClick={() => navigate('/')}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            cursor: 'pointer'
-          }}
+          style={{ cursor: 'pointer' }}
         >
-          <div style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '8px',
-            background: 'var(--accent-grad)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 0 16px rgba(168,85,247,0.45)'
-          }}>
-            <Play size={15} fill="#fff" color="#fff" style={{ marginLeft: '1px' }} />
-          </div>
-          <span style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.5px' }}>
-            StreamHub
-          </span>
+          <StreamHubLogo size={36} showWord={true} wordSize="1.25rem" animate={false} />
         </div>
 
         <div style={{ width: '110px' }} /> {/* Spacer to keep brand center-ish */}
@@ -282,7 +258,7 @@ export default function JoinGroup() {
               />
             </div>
 
-            {/* Your Name Input */}
+            {/* Authenticated Identity */}
             <div>
               <label style={{
                 display: 'flex',
@@ -294,29 +270,42 @@ export default function JoinGroup() {
                 color: 'var(--text-secondary)'
               }}>
                 <User size={15} color="var(--accent-purple-light)" />
-                Your Name
+                Joining As
               </label>
-              <input
-                type="text"
-                placeholder="e.g. Alex"
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value);
-                  setError('');
-                }}
-                className="input-field"
-                required
-                autoFocus={Boolean(urlCode)}
-                style={{ padding: '13px 16px', fontSize: '0.95rem' }}
-              />
-              <span style={{
-                display: 'block',
-                marginTop: '6px',
-                fontSize: '0.78rem',
-                color: 'var(--text-muted)'
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '12px 14px',
+                borderRadius: 'var(--radius-md)',
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid var(--border-subtle)'
               }}>
-                This is how other members in the group will see you.
-              </span>
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.85rem',
+                  fontWeight: 800,
+                  color: '#fff'
+                }}>
+                  {(account?.name || 'M').charAt(0).toUpperCase()}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#F8FAFC' }}>
+                    {account?.name || 'Member'}
+                  </div>
+                  {account?.email && (
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      {account.email}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Submit Button */}

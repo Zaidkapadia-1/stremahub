@@ -15,13 +15,25 @@ import GroupChat from './pages/GroupChat';
 import Members from './pages/Members';
 import Settings from './pages/Settings';
 import Activity from './pages/Activity';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import MyGroups from './pages/MyGroups';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function MobileBottomNav() {
   const location = useLocation();
   const { user } = useUser();
   const groupId = user?.groupId;
 
-  if (!groupId || location.pathname === '/' || location.pathname === '/create' || location.pathname.startsWith('/join')) {
+  if (
+    !groupId ||
+    location.pathname === '/' ||
+    location.pathname === '/create' ||
+    location.pathname.startsWith('/join') ||
+    location.pathname === '/login' ||
+    location.pathname === '/register' ||
+    location.pathname === '/my-groups'
+  ) {
     return null;
   }
 
@@ -59,17 +71,23 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Landing />} />
-            <Route path="/create" element={<CreateGroup />} />
-            <Route path="/join" element={<JoinGroup />} />
-            <Route path="/join/:code" element={<JoinGroup />} />
-            <Route path="/group/:groupId" element={<Dashboard />} />
-            <Route path="/group/:groupId/activity" element={<Activity />} />
-            <Route path="/group/:groupId/invite" element={<InviteMembers />} />
-            <Route path="/group/:groupId/add-accounts" element={<AddAccounts />} />
-            <Route path="/group/:groupId/account/:accountId" element={<AccountDetail />} />
-            <Route path="/group/:groupId/chat" element={<GroupChat />} />
-            <Route path="/group/:groupId/members" element={<Members />} />
-            <Route path="/group/:groupId/settings" element={<Settings />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            
+            {/* Protected Routes */}
+            <Route path="/my-groups" element={<ProtectedRoute><MyGroups /></ProtectedRoute>} />
+            <Route path="/create" element={<ProtectedRoute><CreateGroup /></ProtectedRoute>} />
+            <Route path="/join" element={<ProtectedRoute><JoinGroup /></ProtectedRoute>} />
+            <Route path="/join/:code" element={<ProtectedRoute><JoinGroup /></ProtectedRoute>} />
+            <Route path="/group/:groupId" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/group/:groupId/activity" element={<ProtectedRoute><Activity /></ProtectedRoute>} />
+            <Route path="/group/:groupId/invite" element={<ProtectedRoute><InviteMembers /></ProtectedRoute>} />
+            <Route path="/group/:groupId/add-accounts" element={<ProtectedRoute><AddAccounts /></ProtectedRoute>} />
+            <Route path="/group/:groupId/account/:accountId" element={<ProtectedRoute><AccountDetail /></ProtectedRoute>} />
+            <Route path="/group/:groupId/chat" element={<ProtectedRoute><GroupChat /></ProtectedRoute>} />
+            <Route path="/group/:groupId/members" element={<ProtectedRoute><Members /></ProtectedRoute>} />
+            <Route path="/group/:groupId/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           <MobileBottomNav />

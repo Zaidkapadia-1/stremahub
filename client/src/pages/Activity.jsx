@@ -6,16 +6,17 @@ import {
   Film, Users, UserMinus, RefreshCw
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
+import TopNav from '../components/TopNav';
 import api from '../api';
 
 const EVENT_CONFIG = {
-  group_created: { icon: Sparkles,    color: 'yellow', label: 'created the group' },
-  member_joined: { icon: DoorOpen,    color: 'green',  label: 'joined the group' },
-  member_left:   { icon: UserMinus,   color: 'red',    label: 'left the group' },
-  account_added: { icon: Film,        color: 'blue',   label: 'added an account' },
-  slot_claimed:  { icon: Clapperboard,color: 'purple', label: 'claimed a slot' },
-  slot_released: { icon: RefreshCw,   color: 'orange', label: 'released a slot' },
-  slot_pinged:   { icon: Bell,        color: 'red',    label: 'pinged a slot' },
+  group_created: { icon: Sparkles,     color: 'yellow', label: 'created the group' },
+  member_joined: { icon: DoorOpen,     color: 'green',  label: 'joined the group' },
+  member_left:   { icon: UserMinus,    color: 'red',    label: 'left the group' },
+  account_added: { icon: Film,         color: 'blue',   label: 'added an account' },
+  slot_claimed:  { icon: Clapperboard, color: 'purple', label: 'claimed a slot' },
+  slot_released: { icon: RefreshCw,    color: 'orange', label: 'released a slot' },
+  slot_pinged:   { icon: Bell,         color: 'red',    label: 'pinged a slot' },
 };
 
 const FILTERS = ['All', 'Slots', 'Members', 'Accounts'];
@@ -28,8 +29,8 @@ const filterMap = {
 
 const relativeTime = (date) => {
   const minutes = Math.max(0, Math.round((Date.now() - new Date(date)) / 60000));
-  if (minutes < 1) return 'Just now';
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 1)    return 'Just now';
+  if (minutes < 60)   return `${minutes}m ago`;
   if (minutes < 1440) return `${Math.round(minutes / 60)}h ago`;
   return `${Math.round(minutes / 1440)}d ago`;
 };
@@ -39,18 +40,16 @@ const exactTime = (date) =>
 
 const avatarBg = (name = '') => {
   const colors = ['#7c3aed','#ec4899','#3b82f6','#10b981','#f59e0b','#ef4444','#06b6d4'];
-  const idx = name.charCodeAt(0) % colors.length;
-  return colors[idx];
+  return colors[name.charCodeAt(0) % colors.length];
 };
 
 export default function Activity() {
   const { groupId } = useParams();
-  const [activities, setActivities] = useState([]);
-  const [group, setGroup] = useState(null);
-  const [membersCount, setMembersCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState('All');
-  const [hoveredId, setHoveredId] = useState(null);
+  const [activities,    setActivities]    = useState([]);
+  const [group,         setGroup]         = useState(null);
+  const [membersCount,  setMembersCount]  = useState(0);
+  const [loading,       setLoading]       = useState(true);
+  const [activeFilter,  setActiveFilter]  = useState('All');
 
   useEffect(() => {
     Promise.all([api.get(`/group/${groupId}`), api.get(`/group/${groupId}/activity`)])
@@ -73,16 +72,12 @@ export default function Activity() {
       <Sidebar groupName={group?.name} membersCount={membersCount} />
 
       <main className="main-content" style={{ maxWidth: '860px' }}>
-        {/* Header */}
-        <div style={{ marginBottom: '28px' }} className="animate-fade-in-up">
-          <span className="eyebrow">GROUP TIMELINE</span>
-          <h1 style={{ fontSize: '2.2rem', fontWeight: 800, margin: '8px 0 6px' }}>Activity</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem' }}>
-            A live record of everything happening in {group?.name || 'your group'}.
-          </p>
-        </div>
+        <TopNav
+          title="Activity"
+          subtitle={`A live record of everything happening in ${group?.name || 'your group'}`}
+        />
 
-        {/* Filter Tabs */}
+        {/* Filter tabs */}
         <div className="timeline-filters">
           {FILTERS.map((f) => (
             <button
@@ -94,7 +89,7 @@ export default function Activity() {
             </button>
           ))}
           {!loading && (
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', alignSelf: 'center', marginLeft: 'auto' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', alignSelf: 'center', marginLeft: 'auto' }}>
               {filtered.length} event{filtered.length !== 1 ? 's' : ''}
             </span>
           )}
@@ -112,44 +107,41 @@ export default function Activity() {
           ) : filtered.length === 0 ? (
             <div className="empty-state">
               <div style={{
-                width: '64px', height: '64px', borderRadius: '50%',
+                width: '56px', height: '56px', borderRadius: '50%',
                 background: 'rgba(168,85,247,0.1)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px'
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <ActivityIcon size={28} color="var(--accent-purple-light)" />
+                <ActivityIcon size={24} color="var(--accent-purple-light)" />
               </div>
-              <h2 style={{ fontSize: '1.1rem', fontWeight: 800 }}>
+              <h2 style={{ fontSize: '1.05rem', fontWeight: 800 }}>
                 {activeFilter === 'All' ? 'No activity yet' : `No ${activeFilter.toLowerCase()} events yet`}
               </h2>
-              <p style={{ fontSize: '0.88rem', maxWidth: '280px' }}>
+              <p style={{ fontSize: '0.86rem', maxWidth: '260px', lineHeight: 1.55 }}>
                 {activeFilter === 'All'
                   ? 'Claims, releases, new members, and account changes will appear here.'
-                  : `Switch to a different filter to see other events.`}
+                  : 'Switch to a different filter to see other events.'}
               </p>
             </div>
           ) : (
             filtered.map((item, i) => {
-              const cfg = EVENT_CONFIG[item.type] || { icon: ActivityIcon, color: '', label: item.detail };
+              const cfg  = EVENT_CONFIG[item.type] || { icon: ActivityIcon, color: '', label: item.detail };
               const Icon = cfg.icon;
-              const isHovered = hoveredId === item._id;
 
               return (
                 <article
                   key={item._id}
                   className="timeline-item"
-                  style={{ animationDelay: `${i * 40}ms`, cursor: 'default' }}
-                  onMouseEnter={() => setHoveredId(item._id)}
-                  onMouseLeave={() => setHoveredId(null)}
+                  style={{ animationDelay: `${i * 35}ms` }}
                 >
-                  {/* Event type icon */}
+                  {/* Event icon */}
                   <div className={`timeline-icon ${cfg.color}`}>
-                    <Icon size={16} />
+                    <Icon size={15} />
                   </div>
 
                   {/* Actor avatar */}
                   <div
                     className="timeline-actor"
-                    style={{ background: avatarBg(item.actorName), flexShrink: 0 }}
+                    style={{ background: avatarBg(item.actorName) }}
                     title={item.actorName}
                   >
                     {item.actorName ? item.actorName.charAt(0).toUpperCase() : '?'}
@@ -157,7 +149,7 @@ export default function Activity() {
 
                   {/* Text */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: '0.88rem', lineHeight: 1.45 }}>
+                    <p style={{ fontSize: '0.86rem', lineHeight: 1.45 }}>
                       <strong>{item.actorName}</strong>{' '}
                       <span style={{ color: 'var(--text-secondary)' }}>{item.detail || cfg.label}</span>
                     </p>

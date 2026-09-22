@@ -1,172 +1,276 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Play, Plus } from 'lucide-react';
+import { Bell, ChevronRight, CheckCircle2, Tv } from 'lucide-react';
 import ServiceLogo from './ServiceLogo';
-
-const serviceColors = {
-  Netflix: { bg: '#E50914', text: '#fff' },
-  'Prime Video': { bg: '#00A8E1', text: '#fff' },
-  'Disney+': { bg: '#113CCF', text: '#fff' },
-  'YouTube Premium': { bg: '#FF0000', text: '#fff' },
-  'HBO Max': { bg: '#5822B4', text: '#fff' },
-  'Apple TV+': { bg: '#222', text: '#fff' },
-};
+import { useSocket } from '../context/SocketContext';
+import { useUser } from '../context/UserContext';
+import PingModal from './PingModal';
 
 export default function AccountCard({ account, slots = [] }) {
   const { groupId } = useParams();
   const navigate = useNavigate();
+  const { socket } = useSocket();
+  const { user } = useUser();
 
-  const totalSlots = account.totalSlots || 2;
+  const [pingModalOpen, setPingModalOpen] = useState(false);
+  const [claimingSlot, setClaimingSlot] = useState(false);
+
+  const totalSlots    = account.totalSlots || 2;
   const occupiedSlots = slots.filter((s) => s.memberId !== null);
   const occupiedCount = occupiedSlots.length;
-  const isFull = occupiedCount >= totalSlots;
-  const progressPercent = Math.min(100, Math.round((occupiedCount / totalSlots) * 100));
+  const isFull        = occupiedCount >= totalSlots;
+  const hasAvailable  = occupiedCount < totalSlots;
 
-  const serviceStyle = serviceColors[account.serviceName] || { bg: '#ff5b48', text: '#fff' };
+  // Check if current user occupies a slot in this account
+  const myOccupiedSlot = slots.find((s) => s.memberId && s.memberId === user?.memberId);
+
+  const goToDetail = () => {
+    navigate(`/group/${groupId}/account/${account._id}`);
+  };
+
+  const handleClaim = (e) => {
+    e.stopPropagation();
+    if (!socket || claimingSlot) return;
+    setClaimingSlot(true);
+    socket.emit('claim_slot', { accountId: account._id });
+    setTimeout(() => setClaimingSlot(false), 800);
+  };
+
+  const handleRelease = (e, slotNumber) => {
+    e.stopPropagation();
+    if (!socket) return;
+    socket.emit('release_slot', { accountId: account._id, slotNumber });
+  };
+
+  const handlePing = (e) => {
+    e.stopPropagation();
+    setPingModalOpen(true);
+  };
 
   return (
-    <div
-      style={{
-        background: 'var(--bg-card)',
-        border: '1px solid var(--border-subtle)',
-        borderRadius: 'var(--radius-lg)',
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column',
-        transition: 'transform 0.15s, border-color 0.15s',
-        position: 'relative'
-      }}
-      className="account-card"
-    >
-      {/* Decorative Card Top Cinematic Banner */}
-      <div style={{
-        height: '110px',
-        background: `radial-gradient(circle at top right, rgba(255, 91, 72, 0.18), transparent 70%), linear-gradient(180deg, #181c2b 0%, #121520 100%)`,
-        position: 'relative',
-        padding: '16px',
-        display: 'flex',
-        alignItems: 'flex-start',
-        justifyContent: 'space-between'
-      }}>
-        {/* Service Badge & Name */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <ServiceLogo name={account.serviceName} size={36} />
-          <div>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>{account.serviceName}</h3>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-              {occupiedCount}/{totalSlots} slots
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Card Body */}
-      <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: '14px', flex: 1 }}>
-        {/* Progress Bar */}
-        <div style={{
-          width: '100%',
-          height: '5px',
-          background: '#1f2434',
-          borderRadius: '3px',
-          overflow: 'hidden'
-        }}>
-          <div style={{
-            width: `${progressPercent}%`,
-            height: '100%',
-            background: 'var(--accent-grad)',
-            borderRadius: '3px',
-            transition: 'width 0.3s ease'
-          }} />
-        </div>
-
-        {/* Slot avatars row */}
-        <div style={{
+    <>
+      <div
+        className={`account-card ${isFull ? 'account-card--full' : hasAvailable ? 'account-card--available' : ''}`}
+        style={{
+          background: 'var(--bg-card, #121422)',
+          border: isFull
+            ? '1px solid rgba(239,68,68,0.22)'
+            : hasAvailable
+            ? '1px solid rgba(52,211,153,0.22)'
+            : '1px solid var(--border-subtle, rgba(255,255,255,0.08))',
+          borderRadius: '16px',
+          overflow: 'hidden',
           display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          padding: '8px 0',
-          overflowX: 'auto'
-        }}>
+          flexDirection: 'column',
+          transition: 'all 0.18s ease',
+          boxShadow: isFull
+            ? '0 4px 20px rgba(239,68,68,0.05)'
+            : hasAvailable
+            ? '0 4px 20px rgba(52,211,153,0.05)'
+            : 'none'
+        }}
+      >
+        {/* Header: Service Identity + Availability status */}
+        <div
+          onClick={goToDetail}
+          style={{
+            padding: '16px 18px 12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderBottom: '1px solid rgba(255,255,255,0.04)',
+            cursor: 'pointer'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <ServiceLogo name={account.serviceName} size={36} />
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#F8FAFC' }}>
+                  {account.serviceName}
+                </h3>
+                <ChevronRight size={14} color="var(--text-muted, #64748B)" />
+              </div>
+              <span style={{ fontSize: '0.74rem', color: 'var(--text-muted, #94A3B8)', fontWeight: 600 }}>
+                {occupiedCount} / {totalSlots} active
+              </span>
+            </div>
+          </div>
+
+          {/* Status badge */}
+          {isFull ? (
+            <span style={{
+              fontSize: '0.7rem',
+              fontWeight: 700,
+              padding: '3px 10px',
+              borderRadius: '999px',
+              background: 'rgba(239,68,68,0.12)',
+              color: '#F87171',
+              border: '1px solid rgba(239,68,68,0.24)',
+              letterSpacing: '0.02em'
+            }}>
+              All full
+            </span>
+          ) : (
+            <span style={{
+              fontSize: '0.7rem',
+              fontWeight: 700,
+              padding: '3px 10px',
+              borderRadius: '999px',
+              background: 'rgba(52,211,153,0.12)',
+              color: '#34D399',
+              border: '1px solid rgba(52,211,153,0.24)',
+              letterSpacing: '0.02em'
+            }}>
+              Available
+            </span>
+          )}
+        </div>
+
+        {/* Slot rows: Immediate availability + Action next to slot state */}
+        <div style={{ padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
           {Array.from({ length: totalSlots }).map((_, idx) => {
-            const slot = slots.find((s) => s.slotNumber === idx + 1);
+            const slotNumber = idx + 1;
+            const slot = slots.find((s) => s.slotNumber === slotNumber);
             const isOccupied = slot && slot.memberId !== null;
+            const isMine = isOccupied && slot.memberId === user?.memberId;
 
             return (
-              <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                <div style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '50%',
-                  background: isOccupied ? '#252b3d' : 'transparent',
-                  border: isOccupied ? '2px solid var(--accent-purple)' : '1px dashed var(--border-subtle)',
+              <div
+                key={slotNumber}
+                style={{
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '0.85rem',
-                  fontWeight: 700,
-                  color: isOccupied ? '#fff' : 'var(--text-muted)'
-                }}>
-                  {isOccupied ? (slot.memberName ? slot.memberName.charAt(0).toUpperCase() : 'U') : <Plus size={14} />}
+                  justifyContent: 'space-between',
+                  padding: '9px 12px',
+                  borderRadius: '10px',
+                  background: isMine
+                    ? 'rgba(139,92,246,0.12)'
+                    : isOccupied
+                    ? 'rgba(255,255,255,0.03)'
+                    : 'rgba(52,211,153,0.05)',
+                  border: isMine
+                    ? '1px solid rgba(139,92,246,0.3)'
+                    : isOccupied
+                    ? '1px solid rgba(255,255,255,0.06)'
+                    : '1px solid rgba(52,211,153,0.16)',
+                  fontSize: '0.84rem'
+                }}
+              >
+                {/* Slot state indicator + user info */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                  <span style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: isOccupied ? '#10B981' : 'transparent',
+                    border: isOccupied ? 'none' : '1.5px solid #34D399',
+                    flexShrink: 0
+                  }} />
+
+                  <span style={{
+                    fontWeight: isOccupied ? 700 : 500,
+                    color: isOccupied ? '#F8FAFC' : '#34D399',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {isOccupied ? (isMine ? `${slot.memberName} (You)` : slot.memberName) : 'Available'}
+                  </span>
+
+                  {isOccupied && (
+                    <span style={{
+                      fontSize: '0.68rem',
+                      fontWeight: 600,
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      background: 'rgba(16,185,129,0.14)',
+                      color: '#10B981',
+                      flexShrink: 0
+                    }}>
+                      Watching
+                    </span>
+                  )}
                 </div>
-                <span style={{
-                  fontSize: '0.72rem',
-                  color: isOccupied ? '#fff' : 'var(--text-muted)',
-                  fontWeight: 600,
-                  maxWidth: '46px',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
-                }}>
-                  {isOccupied ? slot.memberName : 'Empty'}
-                </span>
-                <span style={{
-                  fontSize: '0.65rem',
-                  color: isOccupied ? 'var(--status-watching)' : 'var(--text-muted)',
-                  fontWeight: 600
-                }}>
-                  {isOccupied ? 'Watching' : ''}
-                </span>
+
+                {/* Inline Action close to slot state */}
+                <div>
+                  {isMine ? (
+                    <button
+                      type="button"
+                      onClick={(e) => handleRelease(e, slotNumber)}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        background: 'rgba(239,68,68,0.12)',
+                        border: '1px solid rgba(239,68,68,0.3)',
+                        color: '#F87171',
+                        fontSize: '0.74rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Release
+                    </button>
+                  ) : !isOccupied && !myOccupiedSlot ? (
+                    <button
+                      type="button"
+                      disabled={claimingSlot}
+                      onClick={handleClaim}
+                      className="btn-primary"
+                      style={{
+                        padding: '4px 12px',
+                        fontSize: '0.74rem',
+                        fontWeight: 700,
+                        borderRadius: '6px'
+                      }}
+                    >
+                      {claimingSlot ? 'Claiming…' : 'Claim Slot'}
+                    </button>
+                  ) : null}
+                </div>
               </div>
             );
           })}
         </div>
 
-        {/* Bottom Button */}
-        <div style={{ marginTop: 'auto', paddingTop: '6px' }}>
-          {isFull ? (
+        {/* Footer: Full card ping action or my release action */}
+        {isFull && (
+          <div style={{ padding: '0 18px 14px' }}>
             <button
-              onClick={() => navigate(`/group/${groupId}/account/${account._id}`)}
+              type="button"
+              onClick={handlePing}
               style={{
                 width: '100%',
-                padding: '10px',
-                borderRadius: 'var(--radius-full)',
-                background: '#1A1E2B',
-                border: '1px solid var(--border-subtle)',
-                color: 'var(--text-secondary)',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                cursor: 'pointer'
-              }}
-            >
-              All slots in use
-            </button>
-          ) : (
-            <button
-              onClick={() => navigate(`/group/${groupId}/account/${account._id}`)}
-              className="btn-secondary"
-              style={{
-                width: '100%',
-                padding: '9px',
-                fontSize: '0.85rem',
+                padding: '8px 14px',
+                borderRadius: '8px',
+                background: 'rgba(239,68,68,0.08)',
+                border: '1px solid rgba(239,68,68,0.22)',
+                color: '#FCA5A5',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 gap: '6px'
               }}
             >
-              <Play size={14} fill="currentColor" />
-              <span>Watch Now</span>
+              <Bell size={13} />
+              <span>Ping Viewer</span>
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
-    </div>
+
+      {/* Ping modal if opened */}
+      <PingModal
+        isOpen={pingModalOpen}
+        onClose={() => setPingModalOpen(false)}
+        account={account}
+        slots={slots}
+        targetUser="Everyone"
+      />
+    </>
   );
 }

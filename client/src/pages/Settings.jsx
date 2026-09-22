@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronRight, Users, Tv, Bell, Timer, Moon, Sun, LogOut, X } from 'lucide-react';
+import { ChevronRight, Users, Tv, Bell, Timer, Moon, Sun, LogOut, Trash2, X, AlertCircle } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useUser } from '../context/UserContext';
@@ -17,8 +17,10 @@ export default function Settings() {
     try { return JSON.parse(localStorage.getItem('streamhub_notif') ?? 'true'); }
     catch { return true; }
   });
-  const [darkMode, setDarkMode] = useState(true); // already dark app, toggle is cosmetic
+  const [darkMode, setDarkMode] = useState(true);
   const [leaveConfirm, setLeaveConfirm] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [actionError, setActionError] = useState('');
 
   useEffect(() => {
     api.get(`/group/${groupId}`)
@@ -35,11 +37,31 @@ export default function Settings() {
     localStorage.setItem('streamhub_notif', JSON.stringify(next));
   };
 
-  const handleLeaveGroup = () => {
-    logout();
-    navigate('/');
+  const handleLeaveGroup = async () => {
+    setActionError('');
+    try {
+      await api.post(`/group/${groupId}/leave`);
+      logout();
+      navigate('/my-groups');
+    } catch (err) {
+      setLeaveConfirm(false);
+      setActionError(err.response?.data?.error || 'Could not leave group.');
+    }
   };
 
+  const handleDeleteGroup = async () => {
+    setActionError('');
+    try {
+      await api.delete(`/group/${groupId}`);
+      logout();
+      navigate('/my-groups');
+    } catch (err) {
+      setDeleteConfirm(false);
+      setActionError(err.response?.data?.error || 'Failed to delete group.');
+    }
+  };
+
+  const isOwner = user?.role === 'owner' || members.find((m) => m._id === user?.memberId)?.role === 'owner';
   const autoRelease = group?.autoReleaseMinutes ?? 2;
 
   return (
@@ -48,24 +70,62 @@ export default function Settings() {
 
       <main className="main-content" style={{ maxWidth: '800px' }}>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '36px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' }}>
           <button onClick={() => navigate(`/group/${groupId}`)} className="btn-icon">
             <X size={20} />
           </button>
           <h1 style={{ fontSize: '1.8rem', fontWeight: 800 }}>Settings</h1>
         </div>
 
+        {actionError && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            background: 'rgba(239,68,68,0.1)',
+            border: '1px solid rgba(239,68,68,0.25)',
+            color: '#F87171',
+            padding: '14px 18px',
+            borderRadius: '14px',
+            marginBottom: '24px',
+            fontSize: '0.88rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <AlertCircle size={18} style={{ flexShrink: 0 }} />
+              <span>{actionError}</span>
+            </div>
+            {actionError.includes('Transfer ownership') && (
+              <button
+                onClick={() => navigate(`/group/${groupId}/members`)}
+                style={{
+                  background: 'rgba(239,68,68,0.2)',
+                  border: 'none',
+                  color: '#fff',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Go to Members →
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Navigation Settings */}
         <p style={{ fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.12em', color: 'var(--text-muted)', marginBottom: '10px' }}>
-          NAVIGATION
+          GROUP MANAGEMENT
         </p>
         <div style={{
           background: 'var(--bg-card)', border: '1px solid var(--border-subtle)',
           borderRadius: 'var(--radius-lg)', overflow: 'hidden', marginBottom: '24px'
         }}>
           {[
-            { icon: Users, label: 'Group Members', sub: `${members.length} members`, action: () => navigate(`/group/${groupId}/members`) },
-            { icon: Tv,    label: 'Manage Accounts', sub: 'Add, remove, or edit shared accounts', action: () => navigate(`/group/${groupId}/add-accounts`) },
+            { icon: Users, label: 'Group Members', sub: `${members.length} members · Manage roles and permissions`, action: () => navigate(`/group/${groupId}/members`) },
+            { icon: Tv,    label: 'Manage Accounts', sub: 'Add, remove, or edit shared streaming accounts', action: () => navigate(`/group/${groupId}/add-accounts`) },
           ].map((row, i, arr) => {
             const Icon = row.icon;
             return (
@@ -141,7 +201,7 @@ export default function Settings() {
             </label>
           </div>
 
-          {/* Auto-release (read-only, real value) */}
+          {/* Auto-release Timer */}
           <div style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
               <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
@@ -170,14 +230,43 @@ export default function Settings() {
           background: 'var(--bg-card)', border: '1px solid rgba(239,68,68,0.2)',
           borderRadius: 'var(--radius-lg)', overflow: 'hidden'
         }}>
+          {/* Leave Group */}
           <div
-            onClick={() => setLeaveConfirm(true)}
+            onClick={() => { setActionError(''); setLeaveConfirm(true); }}
             className="setting-row-hover"
-            style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', gap: '14px', color: '#ef4444', cursor: 'pointer' }}
+            style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: isOwner ? '1px solid rgba(239,68,68,0.15)' : 'none', cursor: 'pointer' }}
           >
-            <LogOut size={18} />
-            <span style={{ fontSize: '0.95rem', fontWeight: 700 }}>Leave Group</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', color: '#f87171' }}>
+              <LogOut size={18} />
+              <div>
+                <span style={{ fontSize: '0.95rem', fontWeight: 700 }}>Leave Group</span>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
+                  {isOwner ? 'Requires transferring ownership if other members exist' : 'Relinquish membership in this group'}
+                </p>
+              </div>
+            </div>
+            <ChevronRight size={16} color="var(--text-muted)" />
           </div>
+
+          {/* Delete Group (Owner only) */}
+          {isOwner && (
+            <div
+              onClick={() => { setActionError(''); setDeleteConfirm(true); }}
+              className="setting-row-hover"
+              style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', background: 'rgba(239,68,68,0.03)' }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', color: '#ef4444' }}>
+                <Trash2 size={18} />
+                <div>
+                  <span style={{ fontSize: '0.95rem', fontWeight: 700 }}>Delete Group Permanently</span>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
+                    Permanently delete this group, its accounts, chat, and all slot records
+                  </p>
+                </div>
+              </div>
+              <ChevronRight size={16} color="var(--text-muted)" />
+            </div>
+          )}
         </div>
       </main>
 
@@ -185,12 +274,24 @@ export default function Settings() {
       <ConfirmDialog
         isOpen={leaveConfirm}
         title="Leave this group?"
-        message="You'll lose access to all shared accounts. You can rejoin later with an invite link."
+        message="You will leave this group space. You can rejoin anytime using the group invite code."
         confirmLabel="Leave Group"
         cancelLabel="Stay"
         variant="danger"
         onConfirm={handleLeaveGroup}
         onCancel={() => setLeaveConfirm(false)}
+      />
+
+      {/* Delete Group Permanently Confirmation */}
+      <ConfirmDialog
+        isOpen={deleteConfirm}
+        title="Delete this group permanently?"
+        message="This cannot be undone. All shared accounts, active slots, group chat messages, and member permissions will be erased forever."
+        confirmLabel="Delete Permanently"
+        cancelLabel="Keep Group"
+        variant="danger"
+        onConfirm={handleDeleteGroup}
+        onCancel={() => setDeleteConfirm(false)}
       />
     </div>
   );

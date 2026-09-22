@@ -1,10 +1,37 @@
 const mongoose = require("mongoose");
 const Member = require("../models/Member");
 
+const jwt = require("jsonwebtoken");
+const { JWT_SECRET } = require("./auth");
+
 const getSessionMember = async (req, groupId) => {
+  if (!mongoose.isValidObjectId(groupId)) return null;
+
+  // 1. Try x-session-token
   const token = req.get("x-session-token");
-  if (!token || !mongoose.isValidObjectId(groupId)) return null;
-  return Member.findOne({ groupId, sessionToken: token }).select("+sessionToken");
+  if (token) {
+    const member = await Member.findOne({ groupId, sessionToken: token }).select("+sessionToken");
+    if (member) return member;
+  }
+
+  // 2. Try JWT auth token
+  let authToken = req.headers["x-auth-token"] || req.headers.authorization;
+  if (authToken && authToken.startsWith("Bearer ")) {
+    authToken = authToken.slice(7).trim();
+  }
+  if (authToken) {
+    try {
+      const decoded = jwt.verify(authToken, JWT_SECRET);
+      if (decoded?.id) {
+        const member = await Member.findOne({ groupId, userId: decoded.id });
+        if (member) return member;
+      }
+    } catch {
+      // ignore invalid token here
+    }
+  }
+
+  return null;
 };
 
 const requireMember = async (req, res, next) => {

@@ -9,9 +9,27 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   try {
-    const user = JSON.parse(localStorage.getItem('streamhub_user'));
-    if (user?.sessionToken) config.headers['x-session-token'] = user.sessionToken;
-  } catch { /* A request without a saved session will receive the normal API error. */ }
+    // Attach group member session token
+    const savedUser = localStorage.getItem('streamhub_user');
+    if (savedUser) {
+      const user = JSON.parse(savedUser);
+      if (user?.sessionToken) {
+        config.headers['x-session-token'] = user.sessionToken;
+      }
+    }
+
+    // Attach user account auth token
+    const savedAccount = localStorage.getItem('streamhub_account');
+    if (savedAccount) {
+      const account = JSON.parse(savedAccount);
+      if (account?.token) {
+        config.headers['Authorization'] = `Bearer ${account.token}`;
+        config.headers['x-auth-token'] = account.token;
+      }
+    }
+  } catch {
+    /* If local storage is invalid, requests continue normally */
+  }
   return config;
 });
 

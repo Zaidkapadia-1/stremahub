@@ -4,15 +4,15 @@ import { ChevronLeft, Plus, Check } from 'lucide-react';
 import api from '../api';
 import { useUser } from '../context/UserContext';
 import StepProgress from '../components/StepProgress';
+import StreamHubLogo from '../components/StreamHubLogo';
 
 const avatars = ['🍿', '🎬', '📺', '🍕', '🎮'];
 
 export default function CreateGroup() {
   const navigate = useNavigate();
-  const { updateUser } = useUser();
+  const { account, updateUser } = useUser();
 
   const [groupName, setGroupName] = useState('');
-  const [creatorName, setCreatorName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -20,22 +20,21 @@ export default function CreateGroup() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!groupName.trim() || !creatorName.trim()) {
-      setError('Please fill in all fields.');
+    if (!groupName.trim()) {
+      setError('Please provide a group name.');
       return;
     }
     setLoading(true);
     setError('');
     try {
       const res = await api.post('/group', {
-        name: groupName.trim(),
-        creatorName: creatorName.trim()
+        name: groupName.trim()
       });
       const { groupId, inviteCode, memberId, sessionToken } = res.data;
       updateUser({
         groupId, memberId, sessionToken,
         role: 'owner',
-        name: creatorName.trim(),
+        name: account?.name || 'Owner',
         inviteCode,
         groupName: groupName.trim()
       });
@@ -50,11 +49,16 @@ export default function CreateGroup() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-main)', padding: '36px 48px', maxWidth: '1200px', margin: '0 auto' }}>
       {/* Top Bar */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '48px', flexWrap: 'wrap', gap: '20px' }}>
-        <button onClick={() => navigate(-1)} className="btn-icon" style={{ gap: '6px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-          <ChevronLeft size={20} />
-          <span>Back</span>
-        </button>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '48px', flexWrap: 'wrap', gap: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
+          <button onClick={() => navigate(-1)} className="btn-icon" style={{ gap: '6px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+            <ChevronLeft size={20} />
+            <span>Back</span>
+          </button>
+          <div onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
+            <StreamHubLogo size={32} showWord={true} wordSize="1.15rem" animate={false} />
+          </div>
+        </div>
         <StepProgress currentStep={1} />
       </div>
 
@@ -92,15 +96,26 @@ export default function CreateGroup() {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: 600, marginBottom: '8px', color: 'var(--text-secondary)' }}>Your Name</label>
-              <input
-                type="text"
-                placeholder="e.g. John"
-                value={creatorName}
-                onChange={(e) => setCreatorName(e.target.value)}
-                className="input-field"
-                required
-              />
+              <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: 600, marginBottom: '8px', color: 'var(--text-secondary)' }}>
+                Group Owner
+              </label>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '10px',
+                padding: '10px 14px', borderRadius: 'var(--radius-md, 12px)',
+                background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border-subtle, rgba(255,255,255,0.08))'
+              }}>
+                <div style={{
+                  width: '28px', height: '28px', borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '0.8rem', fontWeight: 800, color: '#fff'
+                }}>
+                  {(account?.name || 'U').charAt(0).toUpperCase()}
+                </div>
+                <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#F8FAFC' }}>
+                  {account?.name || 'You'} <span style={{ fontSize: '0.78rem', color: 'var(--accent-purple-light, #c084fc)', fontWeight: 700 }}>(Owner)</span>
+                </span>
+              </div>
             </div>
 
             <div>

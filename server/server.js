@@ -7,6 +7,7 @@ const { Server } = require("socket.io");
 const connectDB = require("./config/db");
 const { connectRedis } = require("./config/redis");
 const groupRoutes = require("./routes/group");
+const authRoutes = require("./routes/auth");
 const setupSlotHandlers = require("./sockets/slotHandlers");
 
 const app = express();
@@ -37,6 +38,9 @@ app.use(express.json());
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
+
+// Auth routes
+app.use("/auth", authRoutes);
 
 // Group routes
 app.use("/group", groupRoutes);

@@ -1,62 +1,38 @@
 import React from 'react';
-import { Search, Bell } from 'lucide-react';
+import { Search } from 'lucide-react';
 
-
-export default function TopNav({ onSearch }) {
+/**
+ * TopNav — compact page header with optional search.
+ * Props:
+ *   title    string  — page heading (e.g. "Streaming Accounts")
+ *   subtitle string  — optional subtext
+ *   onSearch fn      — if provided, renders a compact search input
+ *   actions  node    — optional right-side action buttons
+ */
+export default function TopNav({ title, subtitle, onSearch, actions }) {
   return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: '16px',
-      marginBottom: '28px',
-      flexWrap: 'wrap'
-    }}>
-      {/* Search Bar */}
-      <div style={{
-        position: 'relative',
-        width: '340px',
-        maxWidth: '100%'
-      }}>
-        <Search
-          size={16}
-          color="var(--text-muted)"
-          style={{
-            position: 'absolute',
-            left: '14px',
-            top: '50%',
-            transform: 'translateY(-50%)'
-          }}
-        />
-        <input
-          type="text"
-          placeholder="Search accounts..."
-          onChange={(e) => onSearch && onSearch(e.target.value)}
-          className="input-field"
-          style={{
-            paddingLeft: '40px',
-            borderRadius: 'var(--radius-full)',
-            background: 'var(--bg-card)',
-            fontSize: '0.88rem'
-          }}
-        />
+    <div className="topnav">
+      {/* Left: page context */}
+      <div className="topnav__left">
+        {title && <h1 className="topnav__title">{title}</h1>}
+        {subtitle && <p className="topnav__sub">{subtitle}</p>}
       </div>
 
-      {/* Right Actions */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <button
-          className="btn-icon"
-          style={{
-            width: '40px',
-            height: '40px',
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: '50%'
-          }}
-          title="Notifications"
-        >
-          <Bell size={18} />
-        </button>
+      {/* Right: search + actions */}
+      <div className="topnav__right">
+        {onSearch && (
+          <div className="topnav__search">
+            <Search size={14} color="var(--text-muted)" className="topnav__search-icon" />
+            <input
+              type="text"
+              placeholder="Search accounts…"
+              onChange={(e) => onSearch(e.target.value)}
+              className="input-field"
+              aria-label="Search accounts"
+            />
+          </div>
+        )}
+        {actions}
       </div>
     </div>
   );
