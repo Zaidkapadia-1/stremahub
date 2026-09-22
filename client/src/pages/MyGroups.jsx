@@ -16,7 +16,7 @@ const relativeTime = (date) => {
 
 export default function MyGroups() {
   const navigate = useNavigate();
-  const { account, switchGroup, fullLogout } = useUser();
+  const { account, openGroup, fullLogout } = useUser();
 
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -46,9 +46,14 @@ export default function MyGroups() {
     return () => { isMounted = false; };
   }, [account, navigate]);
 
-  const handleOpenGroup = (grp) => {
-    switchGroup(grp);
-    navigate(`/group/${grp.groupId}`);
+  const handleOpenGroup = async (grp) => {
+    try {
+      await openGroup(grp.groupId, grp);
+      navigate(`/group/${grp.groupId}`);
+    } catch {
+      // Fallback navigation if session already active or offline
+      navigate(`/group/${grp.groupId}`);
+    }
   };
 
   const handleLogout = () => {
@@ -350,8 +355,10 @@ export default function MyGroups() {
                   </button>
 
                   <button
-                    onClick={() => {
-                      switchGroup(grp);
+                    onClick={async () => {
+                      try {
+                        await openGroup(grp.groupId, grp);
+                      } catch {}
                       navigate(`/group/${grp.groupId}/settings`);
                     }}
                     className="btn-icon"

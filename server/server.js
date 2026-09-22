@@ -13,11 +13,24 @@ const setupSlotHandlers = require("./sockets/slotHandlers");
 const app = express();
 const server = http.createServer(app);
 
+// Validate configuration in production
+if (process.env.NODE_ENV === "production" && !process.env.CLIENT_URL) {
+  console.error(
+    `[${new Date().toISOString()}] Configuration error: CLIENT_URL environment variable is required in production.`
+  );
+  process.exit(1);
+}
+
 const clientUrls = [
-  process.env.CLIENT_URL || "http://localhost:5173",
-  "http://localhost:5173",
-  "http://127.0.0.1:5173"
-];
+  process.env.CLIENT_URL
+].filter(Boolean);
+
+if (process.env.NODE_ENV !== "production") {
+  clientUrls.push(
+    "http://localhost:5173",
+    "http://127.0.0.1:5173"
+  );
+}
 
 const corsOptions = {
   origin(origin, callback) {
@@ -33,6 +46,14 @@ app.use(cors(corsOptions));
 
 // Express JSON parsing
 app.use(express.json());
+
+// Handle malformed JSON parsing errors gracefully
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
+    return res.status(400).json({ error: "Invalid JSON format." });
+  }
+  next(err);
+});
 
 // Health check endpoint
 app.get("/health", (req, res) => {
@@ -59,19 +80,20 @@ const PORT = process.env.PORT || 5000;
 const startServer = async () => {
   try {
     await connectDB();
-  } catch (error) {
-    console.error(`[${new Date().toISOString()}] Non-fatal MongoDB startup error:`, error.message);
-  }
-
-  try {
     await connectRedis();
-  } catch (error) {
-    console.error(`[${new Date().toISOString()}] Non-fatal Redis startup error:`, error.message);
-  }
 
-  server.listen(PORT, () => {
-    console.log(`[${new Date().toISOString()}] StreamHub server is running on port ${PORT}`);
-  });
+    server.listen(PORT, "0.0.0.0", () => {
+      console.log(
+        `[${new Date().toISOString()}] StreamHub server is running on port ${PORT}`
+      );
+    });
+  } catch (error) {
+    console.error(
+      `[${new Date().toISOString()}] Startup failed:`,
+      error.message
+    );
+    process.exit(1);
+  }
 };
 
 startServer();

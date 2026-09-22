@@ -6,8 +6,10 @@ const connectDB = async () => {
       serverSelectionTimeoutMS: 3000
     });
     console.log(`[${new Date().toISOString()}] MongoDB Connected: ${conn.connection.host}`);
+    return conn;
   } catch (error) {
     console.error(`[${new Date().toISOString()}] MongoDB Connection Error: ${error.message}`);
+    throw error;
   }
 };
 

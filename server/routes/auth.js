@@ -4,6 +4,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { z } = require("zod");
 
+const mongoose = require("mongoose");
 const User = require("../models/User");
 const Member = require("../models/Member");
 const Group = require("../models/Group");
@@ -129,13 +130,13 @@ router.get("/me", requireAuth, async (req, res) => {
   });
 });
 
-// GET /auth/groups — returns real groups belonging to authenticated user
+// GET /auth/groups — returns safe metadata for groups belonging to authenticated user
 router.get("/groups", requireAuth, async (req, res) => {
   try {
     const userId = req.user._id;
 
-    // Find all memberships for this user
-    const memberships = await Member.find({ userId }).select("+sessionToken").populate("groupId").lean();
+    // Find all memberships for this user (safe metadata only, no sessionToken)
+    const memberships = await Member.find({ userId }).populate("groupId").lean();
 
     const groupsData = await Promise.all(
       memberships
@@ -154,7 +155,6 @@ router.get("/groups", requireAuth, async (req, res) => {
             inviteCode: group.inviteCode,
             role: m.role,
             memberId: m._id.toString(),
-            sessionToken: m.sessionToken,
             memberCount,
             accountCount,
             lastActivity: latestActivity ? latestActivity.createdAt : group.createdAt,
@@ -167,6 +167,40 @@ router.get("/groups", requireAuth, async (req, res) => {
   } catch (error) {
     console.error(`[${new Date().toISOString()}] Error in GET /auth/groups:`, error);
     return res.status(500).json({ error: "Failed to load user groups." });
+  }
+});
+
+// POST /auth/groups/:groupId/session — returns active group session info only for the specified group
+router.post("/groups/:groupId/session", requireAuth, async (req, res) => {
+  try {
+    const { groupId } = req.params;
+
+    if (!groupId || !mongoose.isValidObjectId(groupId)) {
+      return res.status(404).json({ error: "Group not found." });
+    }
+
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ error: "Group not found." });
+    }
+
+    const member = await Member.findOne({ groupId, userId: req.user._id }).select("+sessionToken");
+    if (!member) {
+      return res.status(403).json({ error: "You are not a member of this group." });
+    }
+
+    return res.status(200).json({
+      groupId: group._id.toString(),
+      groupName: group.name,
+      inviteCode: group.inviteCode,
+      role: member.role,
+      memberId: member._id.toString(),
+      sessionToken: member.sessionToken,
+      name: member.name
+    });
+  } catch (error) {
+    console.error(`[${new Date().toISOString()}] Error in POST /auth/groups/:groupId/session:`, error);
+    return res.status(500).json({ error: "Failed to open group session." });
   }
 });
 

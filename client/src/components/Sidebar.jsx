@@ -11,7 +11,7 @@ import api from '../api';
 
 export default function Sidebar({ membersCount = 0, groupName }) {
   const { groupId } = useParams();
-  const { user, account, switchGroup, fullLogout } = useUser();
+  const { user, account, openGroup, fullLogout } = useUser();
   const { socket } = useSocket();
   const navigate = useNavigate();
 
@@ -86,10 +86,14 @@ export default function Sidebar({ membersCount = 0, groupName }) {
     navigate('/');
   };
 
-  const handleSwitchGroup = (grp) => {
+  const handleSwitchGroup = async (grp) => {
     setSwitcherOpen(false);
-    switchGroup(grp);
-    navigate(`/group/${grp.groupId}`);
+    try {
+      await openGroup(grp.groupId, grp);
+      navigate(`/group/${grp.groupId}`);
+    } catch {
+      navigate(`/group/${grp.groupId}`);
+    }
   };
 
   const displayName = groupName || user?.groupName || 'Current group';

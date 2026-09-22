@@ -43,7 +43,7 @@ function SkeletonCard() {
 export default function Dashboard() {
   const { groupId } = useParams();
   const navigate    = useNavigate();
-  const { user, account } = useUser();
+  const { user, account, openGroup } = useUser();
   const { socket, slotsByAccount = {}, requestSlotsSync } = useSocket();
 
   const [group,           setGroup]           = useState(null);
@@ -52,6 +52,15 @@ export default function Dashboard() {
   const [recentActivity,  setRecentActivity]  = useState([]);
   const [searchQuery,     setSearchQuery]     = useState('');
   const [loading,         setLoading]         = useState(true);
+
+  // Ensure active group session is loaded if opening or refreshing group URL directly
+  useEffect(() => {
+    if (groupId && account?.token && (!user?.sessionToken || user?.groupId !== groupId)) {
+      if (openGroup) {
+        openGroup(groupId).catch(() => {});
+      }
+    }
+  }, [groupId, account?.token, user?.sessionToken, user?.groupId, openGroup]);
 
   // Synchronize slots immediately on mount and when groupId changes
   useEffect(() => {

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import api from '../api';
 
 const UserContext = createContext(null);
 
@@ -85,6 +86,22 @@ export const UserProvider = ({ children }) => {
     } catch {}
   };
 
+  const openGroup = async (groupId, cachedGroupMeta = null) => {
+    try {
+      const res = await api.post(`/auth/groups/${groupId}/session`);
+      const sessionData = res.data;
+      const combined = {
+        ...sessionData,
+        ...(cachedGroupMeta || {})
+      };
+      switchGroup(combined);
+      return combined;
+    } catch (err) {
+      console.error('Failed to open group session:', err);
+      throw err;
+    }
+  };
+
   const logout = () => {
     try {
       localStorage.removeItem('streamhub_user');
@@ -107,6 +124,7 @@ export const UserProvider = ({ children }) => {
         loginAccount,
         logoutAccount,
         switchGroup,
+        openGroup,
         logout,
         fullLogout
       }}

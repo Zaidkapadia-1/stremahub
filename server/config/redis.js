@@ -4,7 +4,9 @@ const client = createClient({
   url: process.env.REDIS_URL,
   socket: {
     connectTimeout: 5000,
-    reconnectStrategy: false
+    reconnectStrategy(retries) {
+      return Math.min(retries * 250, 3000);
+    }
   }
 });
 
@@ -20,6 +22,7 @@ const connectRedis = async () => {
     }
   } catch (error) {
     console.error(`[${new Date().toISOString()}] Redis Connection Error: ${error.message}`);
+    throw error;
   }
 };
 
